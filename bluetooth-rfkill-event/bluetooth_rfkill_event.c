@@ -130,6 +130,7 @@ char hciattach_options[PATH_MAX];
 char hci_uart_default_dev[PATH_MAX] = BCM_43341_UART_DEV;
 
 gboolean hci_dev_registered;
+gboolean patcher_started;
 char *bt_module = NULL;
 char *config_file = DEFAULT_CONFIG_FILE;
 GHashTable *switch_hash = NULL; /* hash index to metadata about the switch */
@@ -907,6 +908,7 @@ void free_hci()
     } else {
         INFO("No %s process to be found", hciattach);
     }
+    patcher_started = FALSE;
 }
 
 void attach_hci()
@@ -919,8 +921,9 @@ void attach_hci()
     snprintf(hci_execute, sizeof(hci_execute), "%s %s", hciattach, hciattach_options);
 
     r = system_timeout(hci_execute);
+    patcher_started = WIFEXITED(r) && !WEXITSTATUS(r);
     INFO("executing %s %s", hci_execute,
-         (WIFEXITED(r) && !WEXITSTATUS(r)) ? "succeeded" : "failed");
+         patcher_started ? "succeeded" : "failed");
 
     if (!WIFEXITED(r) || WEXITSTATUS(r))
         FATAL("Failed to execute %s, exiting", hci_execute);
@@ -1235,12 +1238,13 @@ int main(int argc, char **argv)
         case RFKILL_OP_ADD:
             if (event.soft == 0 && event.hard == 0)
 	    {
-                if (s->type == BT_PWR)
+		if (s->type == BT_PWR && !patcher_started)
                 {
                     /* if unblock is for power interface: download patch and eventually register hci device */
-		    INFO("BT power driver unblocked");
+                    INFO("BT power driver unblocked");
                     free_hci();
                     attach_hci();
+
                     /* force to unblock also the bluetooth hci rfkill interface if hci device was registered */
                     if (hci_dev_registered)
                         rfkill_bluetooth_unblock();
