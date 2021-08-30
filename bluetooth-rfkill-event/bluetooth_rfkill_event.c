@@ -1254,28 +1254,6 @@ int main(int argc, char **argv)
 
         switch (event.op) {
         case RFKILL_OP_ADD:
-            if (s->type == BT_PWR && event.soft == 1 && event.hard == 0)
-            {
-                INFO("\"%s\" switch added", BCM_RFKILL_NAME);
-                // There should be no any patcher instances here unless patcher was started by something else
-                if (is_patcher_up())
-                {
-                    INFO("Patcher already started");
-                }
-                else
-                {
-                    if (attach_hci())
-                    {
-                        INFO("Patcher started");
-                    }
-                    else
-                    {
-                        INFO("Patcher cannot be started");
-                        break;
-                    }
-                }
-            }
-            break;
         case RFKILL_OP_CHANGE:
         case RFKILL_OP_CHANGE_ALL:
             if (event.soft == 0 && event.hard == 0)
@@ -1284,6 +1262,23 @@ int main(int argc, char **argv)
                 {
                     /* if unblock is for power interface: download patch and eventually register hci device */
                     INFO("BT power driver unblocked");
+
+                    if (is_patcher_up())
+                    {
+                        INFO("Patcher already started");
+                    }
+                    else
+                    {
+                        if (attach_hci())
+                        {
+                            INFO("Patcher started");
+                        }
+                        else
+                        {
+                            INFO("Patcher cannot be started");
+                            break;
+                        }
+                    }
 
                     /* force to unblock also the bluetooth hci rfkill interface if hci device was registered */
                     if (hci_dev_registered)
