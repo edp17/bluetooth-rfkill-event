@@ -130,7 +130,6 @@ char hciattach_options[PATH_MAX];
 char hci_uart_default_dev[PATH_MAX] = BCM_43341_UART_DEV;
 
 gboolean hci_dev_registered;
-gboolean patcher_started;
 char *bt_module = NULL;
 char *config_file = DEFAULT_CONFIG_FILE;
 GHashTable *switch_hash = NULL; /* hash index to metadata about the switch */
@@ -890,6 +889,25 @@ void read_config(char* file)
         g_key_file_unref(config);
 }
 
+gboolean is_patcher_up()
+{
+    char cmd[PATH_MAX * 2];
+    int r;
+
+    DEBUG("");
+
+    snprintf(cmd, sizeof(cmd), "pidof %s", hciattach);
+
+    r = system_timeout(cmd);
+    if (WIFEXITED(r) && !WEXITSTATUS(r)) {
+        INFO("%s process is up", hciattach);
+        return TRUE;
+    } else {
+        INFO("No %s process to be found", hciattach);
+    }
+    return FALSE;
+}
+
 void free_hci()
 {
     char cmd[PATH_MAX * 2];
@@ -908,13 +926,13 @@ void free_hci()
     } else {
         INFO("No %s process to be found", hciattach);
     }
-    patcher_started = FALSE;
 }
 
-void attach_hci()
+gboolean attach_hci()
 {
     char hci_execute[PATH_MAX * 2];
     int r;
+    gboolean patcher_started;
 
     DEBUG("");
 
@@ -930,6 +948,8 @@ void attach_hci()
 
     /* remember if hci device has been registered (in case conf file is changed) */
     hci_dev_registered = main_opts.enable_hci;
+
+    return patcher_started;
 }
 
 void up_hci(int hci_idx)
@@ -1011,7 +1031,7 @@ void up_hci(int hci_idx)
    - 'rfkill block bluetooth' and then
    - 'rfkill unblock 2'
    once hci bluetooth is registered back it will be blocked */
-void rfkill_bluetooth_unblock()
+void rfkill_bluetooth_control(gboolean block)
 {
     int fd;
     struct rfkill_event event;
@@ -1028,7 +1048,7 @@ void rfkill_bluetooth_unblock()
     memset(&event, 0, sizeof(event));
     event.op = RFKILL_OP_CHANGE_ALL;
     event.type = RFKILL_TYPE_BLUETOOTH;
-    event.soft = 0;
+    event.soft = block;
     if (write(fd, &event, sizeof(event)) < 0)
     {
         ERROR("fail to unblock rfkill bluetooth (%s/%d)",
@@ -1233,43 +1253,70 @@ int main(int argc, char **argv)
 	}
 
         switch (event.op) {
+        case RFKILL_OP_ADD:
+            if (s->type == BT_PWR && event.soft == 1 && event.hard == 0)
+            {
+                INFO("\"%s\" switch added", BCM_RFKILL_NAME);
+                // There should be no any patcher instances here unless patcher was started by something else
+                if (is_patcher_up())
+                {
+                    INFO("Patcher already started");
+                }
+                else
+                {
+                    if (attach_hci())
+                    {
+                        INFO("Patcher started");
+                    }
+                    else
+                    {
+                        INFO("Patcher cannot be started");
+                        break;
+                    }
+                }
+            }
+            break;
         case RFKILL_OP_CHANGE:
         case RFKILL_OP_CHANGE_ALL:
-        case RFKILL_OP_ADD:
             if (event.soft == 0 && event.hard == 0)
 	    {
-		if (s->type == BT_PWR && !patcher_started)
+                if (s->type == BT_PWR)
                 {
                     /* if unblock is for power interface: download patch and eventually register hci device */
                     INFO("BT power driver unblocked");
-                    free_hci();
-                    attach_hci();
 
                     /* force to unblock also the bluetooth hci rfkill interface if hci device was registered */
                     if (hci_dev_registered)
-                        rfkill_bluetooth_unblock();
+                        rfkill_bluetooth_control(FALSE);
 		    INFO("BT enabled");
                 }
                 else if (s->type == BT_HCI && hci_dev_registered)
                 {
+                    INFO("HCI unblocked");
                     /* wait unblock on hci bluetooth interface and force device UP */
 		    if (main_opts.up_hci)
 			up_hci(s->hci.dev_id);
                 }
             }
-            else if (s->type == BT_PWR && hci_dev_registered)
+            else if (s->type == BT_PWR && hci_dev_registered) // soft == 1 || hard == 1
             {
                 /* for a block event on power interface force unblock of hci device interface */
 		INFO("BT power driver blocked");
-                free_hci();
+                //free_hci();
+                // Block also hci?
+                rfkill_bluetooth_control(TRUE);
 		INFO("BT disabled");
+            }
+            else if (s->type == BT_HCI && hci_dev_registered) // soft == 1 || hard == 1
+            {
+                INFO("HCI blocked");
             }
 
         break;
         case RFKILL_OP_DEL:
             /* in case pwr rfkill interface is removed, unregister hci dev if it was registered */
-            if (s->type == BT_PWR && hci_dev_registered)
-                free_hci();
+//            if (s->type == BT_PWR && hci_dev_registered)
+//                free_hci();
 	    DEBUG("Removing rfkill switch %d from hash", event.idx);
 	    g_hash_table_remove(switch_hash, GINT_TO_POINTER(event.idx));
 	    break;
