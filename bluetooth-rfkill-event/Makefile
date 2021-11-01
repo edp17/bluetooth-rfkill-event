@@ -7,6 +7,12 @@ CFLAGS += `pkg-config --cflags glib-2.0`
 LIBS += `pkg-config --libs bluez`
 LIBS += `pkg-config --libs glib-2.0`
 
+ifeq ($(RFKILL_HELPER_PATH),)
+	RFKILL_HELPER_PATH = /usr/share/libexec/bluetooth_rfkill_event
+endif
+
+CFLAGS += -DRFKILL_HELPER_PATH="\"$(RFKILL_HELPER_PATH)\""
+
 %.o: %.c
 		$(CC) $(CFLAGS) -c $< -o $@
 
@@ -28,3 +34,5 @@ install:
 	mkdir -p $(INSTALL_ROOT)/etc/bluetooth-rfkill-event
 	mkdir -p $(INSTALL_ROOT)/etc/sysconfig
 	install bluetooth-rfkill-event.sysconfig $(INSTALL_ROOT)/etc/sysconfig/bluetooth-rfkill-event
+	mkdir -p $(INSTALL_ROOT)$(RFKILL_HELPER_PATH)
+	install -m 775 killall-wait.sh $(INSTALL_ROOT)$(RFKILL_HELPER_PATH)/killall-wait.sh
