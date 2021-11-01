@@ -900,7 +900,7 @@ void free_hci()
 
     r = system_timeout(cmd);
     if (WIFEXITED(r) && !WEXITSTATUS(r)) {
-        snprintf(cmd, sizeof(cmd), "killall --wait %s", hciattach);
+        snprintf(cmd, sizeof(cmd), RFKILL_HELPER_PATH "/killall-wait.sh %s", hciattach);
         r = system_timeout(cmd);
         INFO("killing %s %s", hciattach,
              (WIFEXITED(r) && !WEXITSTATUS(r)) ? "succeeded" : "failed");
