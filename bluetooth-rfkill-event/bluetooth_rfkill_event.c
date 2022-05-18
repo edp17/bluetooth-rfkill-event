@@ -75,7 +75,7 @@ enum rfkill_switch_type {
 
 /* list of all supported chips:
    name is defined in the kernel driver implementing rfkill interface for power */
-#define BCM_RFKILL_NAME "bcm43xx Bluetooth\n"
+#define BCM_RFKILL_NAME "bcm4335 Bluetooth\n"
 #define BCM_43341_UART_DEV "/dev/ttyMFD0"
 #define BD_ADD_FACTORY_FILE "/factory/bluetooth_address"
 char factory_bd_add[18];
