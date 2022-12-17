@@ -7,11 +7,11 @@ Version: 1.1.0
 Release: 1
 License: GPLv2
 Source0: %{name}-%{version}.tar.bz2
-Requires: bluez5-libs
+Requires: bluez-libs
 Requires: glib2
-Requires: broadcom-bluetooth-bluez5
+Requires: broadcom-bluetooth
 Requires: bluetooth-rfkill-event-configs
-BuildRequires: bluez5-libs-devel
+BuildRequires: bluez-libs-devel
 BuildRequires: glib2-devel
 BuildRequires: systemd
 

@@ -8,15 +8,15 @@ Release: 1
 License: GPLv2
 Source0: %{name}-%{version}.tar.bz2
 Requires: glib2
-Requires: bluez5-tools-hciattach
-BuildRequires: bluez5-libs-devel
+Requires: bluez-tools-hciattach
+BuildRequires: bluez-libs-devel
 BuildRequires: glib2-devel
 BuildRequires: systemd
 Provides:   bluetooth-rfkill-event
 
 %description
 Bluetooth rfkill event daemon. Part of Intel Edison GPL/LGPL sources.
-Use bluez5 hciattach for patch download.
+Use bluez hciattach for patch download.
 
 %package configs-mer
 Summary:    Default configuration for bluetooth-rfkill-event
