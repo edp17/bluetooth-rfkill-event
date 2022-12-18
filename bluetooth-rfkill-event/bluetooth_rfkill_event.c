@@ -81,9 +81,9 @@ enum rfkill_switch_type {
 char factory_bd_add[18];
 char default_bd_addr[18];
 
-#define DEFAULT_CONFIG_FILE "/etc/firmware/bcm43341.conf"
+#define DEFAULT_CONFIG_FILE "/etc/firmware/bcm4335.conf"
 
-#define HCIATTACH_TYPE_ID_DEFAULT "bcm43xx"
+#define HCIATTACH_TYPE_ID_DEFAULT "bcm4335"
 
 /* attempt to set hci dev UP */
 #define MAX_RETRY 10
