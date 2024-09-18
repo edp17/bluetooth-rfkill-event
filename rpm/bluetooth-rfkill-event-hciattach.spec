@@ -3,7 +3,7 @@
 Name: bluetooth-rfkill-event-hciattach
 Summary: Bluetooth rfkill event daemon
 URL: https://downloadcenter.intel.com/Detail_Desc.aspx?DwnldID=24389
-Version: 1.1.2
+Version: 1.1.1
 Release: 1
 License: GPLv2
 Source0: %{name}-%{version}.tar.bz2
